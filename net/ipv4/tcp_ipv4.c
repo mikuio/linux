@@ -1649,6 +1649,7 @@ u16 tcp_v4_get_syncookie(struct sock *sk, struct iphdr *iph,
  * This is because we cannot sleep with the original spinlock
  * held.
  */
+// 处理 TCP_ESTABLISHED 和 LISTEN
 int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 {
 	struct sock *rsk;
@@ -1673,6 +1674,8 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 		goto csum_err;
 
 	if (sk->sk_state == TCP_LISTEN) {
+		// syn cookie
+		// 没有开启 syn cookie 则 nsk == sk
 		struct sock *nsk = tcp_v4_cookie_check(sk, skb);
 
 		if (!nsk)
@@ -1687,6 +1690,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 	} else
 		sock_rps_save_rxhash(sk, skb);
 
+	// 核心状态机
 	if (tcp_rcv_state_process(sk, skb)) {
 		rsk = sk;
 		goto reset;
@@ -1908,7 +1912,7 @@ static void tcp_v4_fill_cb(struct sk_buff *skb, const struct iphdr *iph,
 /*
  *	From tcp_input.c
  */
-
+// TCP 接收入口
 int tcp_v4_rcv(struct sk_buff *skb)
 {
 	struct net *net = dev_net(skb->dev);
