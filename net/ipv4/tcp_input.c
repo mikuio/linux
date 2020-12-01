@@ -6804,12 +6804,14 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 	/* Note: tcp_v6_init_req() might override ir_iif for link locals */
 	inet_rsk(req)->ir_iif = inet_request_bound_dev_if(sk, skb);
 
+    // tcp_v4_init_req
 	af_ops->init_req(req, sk, skb);
 
 	if (security_inet_conn_request(sk, skb, req))
 		goto drop_and_free;
 
 	if (tmp_opt.tstamp_ok)
+	    // tcp_v4_init_ts_off
 		tcp_rsk(req)->ts_off = af_ops->init_ts_off(net, skb);
 
 	dst = af_ops->route_req(sk, &fl, req);
@@ -6833,7 +6835,7 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 				    rsk_ops->family);
 			goto drop_and_release;
 		}
-
+		// hash(src ip, src port, dst ip, dst port)
 		isn = af_ops->init_seq(skb);
 	}
 
@@ -6851,6 +6853,7 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 	tcp_openreq_init_rwin(req, sk, dst);
 	sk_rx_queue_set(req_to_sk(req), skb);
 	if (!want_cookie) {
+		// 保存 syn
 		tcp_reqsk_record_syn(sk, req, skb);
 		fastopen_sk = tcp_try_fastopen(sk, skb, req, &foc, dst);
 	}

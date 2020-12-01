@@ -363,6 +363,7 @@ void tcp_openreq_init_rwin(struct request_sock *req,
 {
 	struct inet_request_sock *ireq = inet_rsk(req);
 	const struct tcp_sock *tp = tcp_sk(sk_listener);
+	// 获取 tcp 窗口大小， socket buf size 与 tcp_adv_win_scale 的结果
 	int full_space = tcp_full_space(sk_listener);
 	u32 window_clamp;
 	__u8 rcv_wscale;
@@ -386,6 +387,7 @@ void tcp_openreq_init_rwin(struct request_sock *req,
 		full_space = rcv_wnd * mss;
 
 	/* tcp_full_space because it is guaranteed to be the first packet */
+	// 选择初始窗口大小和窗口缩放选项
 	tcp_select_initial_window(sk_listener, full_space,
 		mss - (ireq->tstamp_ok ? TCPOLEN_TSTAMP_ALIGNED : 0),
 		&req->rsk_rcv_wnd,
