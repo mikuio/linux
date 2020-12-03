@@ -363,16 +363,21 @@ void tcp_openreq_init_rwin(struct request_sock *req,
 {
 	struct inet_request_sock *ireq = inet_rsk(req);
 	const struct tcp_sock *tp = tcp_sk(sk_listener);
-	// 获取 tcp 窗口大小， socket buf size 与 tcp_adv_win_scale 的结果
+	// 获取窗口最大大小， socket buf size 与 tcp_adv_win_scale 的结果
+	// 计算方式 sk_listener  socket 缓冲区大小 buf_size, buf_size - ( buf_size >> tcp_adv_win_scale )
 	int full_space = tcp_full_space(sk_listener);
 	u32 window_clamp;
 	__u8 rcv_wscale;
 	u32 rcv_wnd;
 	int mss;
 
+    // min(user_mss, 目的地 mss)
+	// user_mss 通过 socket opt 设置
+	// 目的 mss 学习到的？
 	mss = tcp_mss_clamp(tp, dst_metric_advmss(dst));
 	window_clamp = READ_ONCE(tp->window_clamp);
 	/* Set this up on the first call only */
+	// 获取最大 window_clamp 有可能大于 full_space
 	req->rsk_window_clamp = window_clamp ? : dst_metric(dst, RTAX_WINDOW);
 
 	/* limit the window selection if the user enforce a smaller rx buffer */
@@ -380,8 +385,11 @@ void tcp_openreq_init_rwin(struct request_sock *req,
 	    (req->rsk_window_clamp > full_space || req->rsk_window_clamp == 0))
 		req->rsk_window_clamp = full_space;
 
+	// 调用 bpf 函数获取 rcv_wnd, 没有开启 bpf 则 rcv_wnd == 0
+	// https://docs.cilium.io/en/latest/bpf
 	rcv_wnd = tcp_rwnd_init_bpf((struct sock *)req);
 	if (rcv_wnd == 0)
+	     // 获取 dst 的 rcv_wnd
 		rcv_wnd = dst_metric(dst, RTAX_INITRWND);
 	else if (full_space < rcv_wnd * mss)
 		full_space = rcv_wnd * mss;
